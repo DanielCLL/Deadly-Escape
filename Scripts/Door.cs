@@ -9,42 +9,49 @@ public class Door : MonoBehaviour
     public float offsetRotationY = 0f;
     public float minY, maxY = 130f;
     public bool isOpen = false;
+    public bool isLocked = false;
     public bool isLeft = true;
     public bool hasParent = true;
+    public string lockerRequires;
 
     //private float timer = 0f;
     // Start is called before the first frame update
     void Start()
     {
         if (ParentDoor == null) ParentDoor = hasParent ? transform.parent.gameObject : this.gameObject;
+        if (isLocked) isOpen = false;
     }
 
     // Update is called once per frame
     void Update()
     {
-        float targetY;
-        if (isOpen)
+        if (!isLocked)
         {
-            minY = offsetRotationY;
-            targetY = (isLeft ? -maxY : maxY) + offsetRotationY;
+            float targetY;
+            if (isOpen)
+            {
+                minY = offsetRotationY;
+                targetY = (isLeft ? -maxY : maxY) + offsetRotationY;
+            }
+            else
+                targetY = minY;
+
+            // Obtener la rotación actual en euler angles
+            Vector3 currentRotation = ParentDoor.transform.localRotation.eulerAngles;
+
+            // Convertir el ángulo a rango [-180, 180] para evitar giros innecesarios
+            float y = NormalizeAngle(currentRotation.y);
+
+            // Interpolar hacia el ángulo deseado
+            float newY = Mathf.MoveTowardsAngle(y, targetY, rotationSpeed * Time.deltaTime);
+
+            // Mantener X y Z originales
+            float originalX = currentRotation.x;
+            float originalZ = currentRotation.z;
+
+            ParentDoor.transform.localRotation = Quaternion.Euler(0f, newY, 0f);
         }
-        else
-            targetY = minY;
-
-        // Obtener la rotación actual en euler angles
-        Vector3 currentRotation = ParentDoor.transform.localRotation.eulerAngles;
-
-        // Convertir el ángulo a rango [-180, 180] para evitar giros innecesarios
-        float y = NormalizeAngle(currentRotation.y);
-
-        // Interpolar hacia el ángulo deseado
-        float newY = Mathf.MoveTowardsAngle(y, targetY, rotationSpeed * Time.deltaTime);
-
-        // Mantener X y Z originales
-        float originalX = currentRotation.x;
-        float originalZ = currentRotation.z;
-
-        ParentDoor.transform.localRotation = Quaternion.Euler(0f, newY, 0f);
+            
     }
     float NormalizeAngle(float angle)
     {
@@ -63,5 +70,20 @@ public class Door : MonoBehaviour
     public bool getOpen()
     {
         return isOpen;
+    }
+
+    public string getLockerRequires()
+    {
+        return lockerRequires;
+    }
+
+    public bool getLocked()
+    {
+        return isLocked;
+    }
+
+    public void Unlock()
+    {
+        isLocked = false;
     }
 }

@@ -15,7 +15,8 @@ public class PlayerController : MonoBehaviour
     private float mouseSensitivity;
     private float verticalRotation = 0f;
     private bool isCrouched = false;
-    private bool flashlightActive = true;
+    private bool flashlightGet = false;
+    private bool flashlightActive = false;
 
     // Start is called before the first frame update
     void Start()
@@ -52,25 +53,28 @@ public class PlayerController : MonoBehaviour
             isCrouched = false;
         }
 
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Input.GetKeyDown(KeyCode.F) && flashlightGet)
         {
             flashlightActive = !flashlightActive;
         }
 
+        Flashlight.SetActive(flashlightGet);
         WhiteLight.SetActive(flashlightActive);
         /*
-        if (flashlightActive)
-        {
-            if (Flashlight.transform.position.y < cameraTransform.position.y - 0.345f)
+        if (flashlightGet) {
+            if (flashlightActive)
             {
-                Flashlight.transform.Translate(Vector3.forward * 3 * Time.deltaTime);
+                if (Flashlight.transform.position.y < cameraTransform.position.y - 0.345f)
+                {
+                    Flashlight.transform.Translate(Vector3.forward * 3 * Time.deltaTime);
+                }
             }
-        }
-        else
-        {
-            if (Flashlight.transform.position.y > cameraTransform.position.y - 0.8f)
+            else
             {
-                Flashlight.transform.Translate(Vector3.back * 3 * Time.deltaTime);
+                if (Flashlight.transform.position.y > cameraTransform.position.y - 0.8f)
+                {
+                    Flashlight.transform.Translate(Vector3.back * 3 * Time.deltaTime);
+                }
             }
         }
         */
@@ -95,32 +99,92 @@ public class PlayerController : MonoBehaviour
         // Lanza el rayo y detecta colisiones
         if (Physics.Raycast(ray, out hit, 1.5f, interactables))
         {
+            GameObject objetoGO = hit.collider.gameObject;
             Debug.Log("Hit: " + hit.collider.name);
             // Aquí puedes interactuar con lo que se golpea
 
-            if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Door"))
+            if (objetoGO.layer == LayerMask.NameToLayer("Door"))
             {
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    hit.collider.gameObject.GetComponent<Door>().setOpen();
+                    string objRequired = objetoGO.GetComponent<Door>().getLockerRequires();
+                    if (objetoGO.GetComponent<Door>().getLocked() && !GameManager.GetComponent<GameManager>().isOnInventory(objRequired))
+                    {
+                        GameManager.GetComponent<GameManager>().setDescText("Está cerrado. Necesito la " + objRequired + ".");
+                        GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    }
+                    else if (objetoGO.GetComponent<Door>().getLocked() && GameManager.GetComponent<GameManager>().isOnInventory(objRequired))
+                    {
+                        GameManager.GetComponent<GameManager>().useItem(objRequired);
+                        objetoGO.GetComponent<Door>().Unlock();
+                        GameManager.GetComponent<GameManager>().setDescText("Puerta desbloqueada.");
+                        GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    }
+                    else
+                    {
+                        objetoGO.GetComponent<Door>().setOpen();
+                    }
                 }
 
-                if (!hit.collider.GetComponent<Door>().getOpen())
+                if (!objetoGO.GetComponent<Door>().getOpen())
                 {
-                    GameManager.setInfoText("[E]\nAbrir");
+                    GameManager.setActionsText("[E] Abrir");
                     GameManager.setIsActionsAviableTextTrue();
                 }
                 else
                 {
-                    GameManager.setInfoText("[E]\nCerrar");
+                    GameManager.setActionsText("[E] Cerrar");
                     GameManager.setIsActionsAviableTextTrue();
+                }
+            }
+            else if (objetoGO.layer == LayerMask.NameToLayer("Locker"))
+            {
+                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setIsActionsAviableTextTrue();
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    GameManager.GetComponent<GameManager>().setDescText("Aquí solo hay documentos sin valor.");
+                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                }
+            }
+            else if (objetoGO.layer == LayerMask.NameToLayer("PC"))
+            {
+                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setIsActionsAviableTextTrue();
+                if (objetoGO.name == "PC_Monitor (1)" && Input.GetKeyDown(KeyCode.E))
+                {
+                    GameManager.GetComponent<GameManager>().setDescText("No funciona.");
+                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                }
+                else if (objetoGO.name == "PC_Monitor" && Input.GetKeyDown(KeyCode.E))
+                {
+                    GameManager.GetComponent<GameManager>().setDescText("Está encendido, pero me hace falta una contraseña.");
+                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                }
+            }
+            else if (objetoGO.layer == LayerMask.NameToLayer("Elevator"))
+            {
+                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setIsActionsAviableTextTrue();
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    GameManager.GetComponent<GameManager>().setDescText("No funciona.");
+                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
                 }
             }
             else if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Collectable"))
             {
-                GameManager.setInfoText("[E]\nCoger");
+                GameManager.setActionsText("[E] Coger");
                 GameManager.setIsActionsAviableTextTrue();
-                //hit.collider.gameObject.GetComponent<Collectable>()
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    GameManager.GetComponent<GameManager>().ActivateTextByName(hit.collider.gameObject.GetComponent<Collectable>().GetName());
+                    hit.collider.GetComponent<Collectable>().GetItem();
+                }
+            }
+            else
+            {
+                GameManager.setIsActionsAviableTextFalse();
             }
         } else
         {
@@ -130,5 +194,10 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         if (Input.GetKeyDown(KeyCode.Space)) _rb.AddForce(Vector3.up * 2f, ForceMode.Impulse);
+    }
+
+    public void getFlashlight()
+    {
+        flashlightGet = true;
     }
 }
