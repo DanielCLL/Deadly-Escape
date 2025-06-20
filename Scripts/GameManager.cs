@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -12,8 +13,14 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI musicaValue;
     public TextMeshProUGUI sensibValue;
 
-    private float porcMusica;
-    private float sensibilidad;
+    private float porcMusica = 100;
+    private float sensibilidad = 1;
+
+    // Variables del juego
+    // Canvas
+    public TextMeshProUGUI ActionsText;
+    private bool isActionsTextAviable = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,11 +30,23 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        porcMusica = MusicaSL.value;
-        sensibilidad = SensibSL.value;
+        if (SceneManager.GetActiveScene().name == "MainMenu")
+        {
+            porcMusica = MusicaSL.value;
+            sensibilidad = SensibSL.value;
 
-        musicaValue.text = Mathf.Floor(porcMusica).ToString() + "%";
-        sensibValue.text = (Mathf.Floor(sensibilidad * 100) / 100).ToString();
+            musicaValue.text = Mathf.Floor(porcMusica).ToString() + "%";
+            sensibValue.text = (Mathf.Floor(sensibilidad * 100) / 100).ToString();
+        }
+        else if (SceneManager.GetActiveScene().name == "Show")
+        {
+            if (ActionsText != null)
+            {
+                if (GameObject.Find("ActionsText") != null)
+                    ActionsText = GameObject.Find("ActionsText").GetComponent<TextMeshProUGUI>();
+            }
+            ActionsText.gameObject.SetActive(isActionsTextAviable);
+        }
     }
 
     public float GetMusicaValue()
@@ -44,5 +63,22 @@ public class GameManager : MonoBehaviour
     {
         MusicaSL.value = 100f;
         SensibSL.value = 1f;
+    }
+
+    public bool getIsActionsAviableText()
+    {
+        return isActionsTextAviable;
+    }
+    public void setIsActionsAviableTextTrue()
+    {
+        isActionsTextAviable = true;
+    }
+    public void setIsActionsAviableTextFalse()
+    {
+        isActionsTextAviable = false;
+    }
+    public void setInfoText(string s)
+    {
+        ActionsText.text = s;
     }
 }
