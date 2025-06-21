@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Threading;
+using System.Numerics;
 
 public class GameManager : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI ActionsText;
     public TextMeshProUGUI DescText;
     public TextMeshProUGUI LoreText;
+    public TextMeshProUGUI FlashlightBatery;
     private bool isActionsTextAviable = false;
     private bool isDescTextAviable = false;
     private bool isLoreTextAviable = false;
@@ -34,6 +36,10 @@ public class GameManager : MonoBehaviour
 
     // Jugador
     public GameObject PlayerGO;
+
+    // Entorno
+    public GameObject CablePC;
+    private bool cablePuesto = false;
 
     // Start is called before the first frame update
     void Start()
@@ -55,31 +61,27 @@ public class GameManager : MonoBehaviour
         }
         else if (SceneManager.GetActiveScene().name == "Show")
         {
-            if (ActionsText == null)
-            {
-                if (GameObject.Find("ActionsText") != null)
-                    ActionsText = GameObject.Find("ActionsText").GetComponent<TextMeshProUGUI>();
-            }
-            if (DescText == null)
-            {
-                if (GameObject.Find("DescText") != null)
-                    DescText = GameObject.Find("DescText").GetComponent<TextMeshProUGUI>();
-            }
-            if (LoreText == null)
-            {
-                if (GameObject.Find("LoreText") != null)
-                    LoreText = GameObject.Find("LoreText").GetComponent<TextMeshProUGUI>();
-            }
+            if (ActionsText == null) ActionsText = GameObject.Find("ActionsText").GetComponent<TextMeshProUGUI>();
+            if (DescText == null) DescText = GameObject.Find("DescText").GetComponent<TextMeshProUGUI>();
+            if (LoreText == null) LoreText = GameObject.Find("LoreText").GetComponent<TextMeshProUGUI>();
+            if (FlashlightBatery == null)  FlashlightBatery = GameObject.Find("FlashlightBatery").GetComponent<TextMeshProUGUI>();
             if (PlayerGO == null) PlayerGO = GameObject.Find("Player");
+            if (CablePC == null) CablePC = GameObject.Find("Cable_Black");
+
             ActionsText.gameObject.SetActive(isActionsTextAviable);
             DescText.gameObject.SetActive(isDescTextAviable);
             LoreText.gameObject.SetActive(isLoreTextAviable);
+            CablePC.gameObject.SetActive(cablePuesto);
+
+            if (PlayerGO.GetComponent<PlayerController>().isFlashlightGet())
+                FlashlightBatery.text = "Batería: " + Mathf.Floor(PlayerGO.GetComponent<PlayerController>().getFlashlightBatery()).ToString() + " %";
 
             if (descTimer > 0)
             {
                 descTimer -= Time.deltaTime;
                 isDescTextAviable = true;
-            } else
+            }
+            else
             {
                 isDescTextAviable = false;
             }
@@ -96,7 +98,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /*****************************/
     //* SETS y GETS de Opciones *//
+    /*****************************/
     public float GetMusicaValue()
     {
         return porcMusica;
@@ -106,7 +110,6 @@ public class GameManager : MonoBehaviour
     {
         return sensibilidad;
     }
-
     public void RestablecerValues()
     {
         MusicaSL.value = 100f;
@@ -116,7 +119,6 @@ public class GameManager : MonoBehaviour
     /********************************/
     //* SETS y GETS de ActionsText *//
     /********************************/
-
     public bool getIsActionsAviableText()
     {
         return isActionsTextAviable;
@@ -137,7 +139,6 @@ public class GameManager : MonoBehaviour
     /*****************************/
     //* SETS y GETS de DescText *//
     /*****************************/
-
     public bool getIsDescAviableText()
     {
         return isDescTextAviable;
@@ -207,22 +208,32 @@ public class GameManager : MonoBehaviour
             setDescText("Pulsa [F] para usar la linterna.");
             setIsDescAviableTextTrue();
         }
-        else if (s == "Llave del guarda")
+        else if (s == "Batería pequeña")
         {
-            setDescText(s);
-            setIsDescAviableTextTrue();
+            PlayerGO.GetComponent<PlayerController>().addBatery(50f);
         }
-        else if (s == "Llave del sótano")
+        else if (s == "Batería grande")
         {
-            setDescText(s);
-            setIsDescAviableTextTrue();
+            PlayerGO.GetComponent<PlayerController>().addBatery(100f);
         }
-        if (s == "Llave de la Puerta Principal")
+        else if (s == "Tarjeta de seguridad")
         {
-            setDescText("Llave de la Puerta Principal");
-            setIsDescAviableTextTrue();
+            setLoreText("Pone que pertenece a un tal \"Antonio Arcos\". ¿Me servirá de algo en el PC de abajo?");
+            setIsLoreAviableTextTrue();
+        }
+        if (s == "Llave de la puerta principal")
+        {
             setLoreText("¡Creo que por fin puedo salir de aquí!");
             setIsLoreAviableTextTrue();
         }
+    }
+    public void putWire()
+    {
+        cablePuesto = true;
+    }
+
+    public bool isWirePut()
+    {
+        return cablePuesto;
     }
 }

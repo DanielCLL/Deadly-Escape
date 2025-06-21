@@ -40,7 +40,6 @@ public class EventSystemManager : MonoBehaviour
     {
         menuOpcionesOn = true;
     }
-
     public void OcultarOpciones()
     {
         menuOpcionesOn = false;
@@ -48,6 +47,10 @@ public class EventSystemManager : MonoBehaviour
     public void MostrarCreditos()
     {
         menuCreditosOn = true;
+    }
+    public void EndGame()
+    {
+        SceneManager.LoadScene("End");
     }
     public void QuitGame()
     {

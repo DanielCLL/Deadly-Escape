@@ -97,6 +97,7 @@ GameObject:
   - component: {fileID: 1514232643623777159}
   - component: {fileID: 3667994811550271309}
   - component: {fileID: 8471789560259626101}
+  - component: {fileID: 3807289969395165347}
   m_Layer: 15
   m_Name: Simple_02
   m_TagString: Untagged
@@ -191,6 +192,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.08491469, y: 0.13057552, z: 0.018584855}
   m_Center: {x: -0.012976404, y: -0.0011685342, z: 0.006601808}
+--- !u!114 &3807289969395165347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3019568617730713240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 714a0d703cc06f245a2562f1e3108c3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GameManager: {fileID: 0}
+  collectableName: Llave del guarda
 --- !u!1 &4723547211238572199
 GameObject:
   m_ObjectHideFlags: 0

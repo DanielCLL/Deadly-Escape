@@ -44,6 +44,12 @@ public class EventCube : MonoBehaviour
                 timer = 3f;
                 isTrigger = true;
             }
+            else if (id == 1)
+            {
+                GameManager.setDescText("Pulsa [LControl] para agacharte.");
+                GameManager.setIsDescAviableTextTrue();
+                Destroy (this.gameObject);
+            }
         }
     }
 }

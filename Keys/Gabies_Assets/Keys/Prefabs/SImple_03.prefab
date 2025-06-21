@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4071069836747969314}
   - component: {fileID: 2872972409715257102}
+  - component: {fileID: 8017700379908662054}
   m_Layer: 15
   m_Name: SImple_03
   m_TagString: Untagged
@@ -54,6 +55,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.10858774, y: 0.13903041, z: 0.03853602}
   m_Center: {x: 0.019488573, y: -0.0035041794, z: 0.002188757}
+--- !u!114 &8017700379908662054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6202248377633566000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 714a0d703cc06f245a2562f1e3108c3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GameManager: {fileID: 0}
+  collectableName: "Llave de los ba\xF1os (P1)"
 --- !u!1001 &8706509021001266060
 PrefabInstance:
   m_ObjectHideFlags: 0

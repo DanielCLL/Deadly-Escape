@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     private bool isCrouched = false;
     private bool flashlightGet = false;
     private bool flashlightActive = false;
+    private float flashlightBatery = 60;
 
     // Start is called before the first frame update
     void Start()
@@ -53,10 +54,13 @@ public class PlayerController : MonoBehaviour
             isCrouched = false;
         }
 
-        if (Input.GetKeyDown(KeyCode.F) && flashlightGet)
+        if (Input.GetKeyDown(KeyCode.F) && flashlightGet && flashlightBatery > 1)
         {
             flashlightActive = !flashlightActive;
         }
+
+        if (flashlightActive && flashlightBatery > 1) flashlightBatery -= Time.deltaTime;
+        else if (flashlightBatery <= 1) flashlightActive = false;
 
         Flashlight.SetActive(flashlightGet);
         WhiteLight.SetActive(flashlightActive);
@@ -108,17 +112,17 @@ public class PlayerController : MonoBehaviour
                 if (Input.GetKeyDown(KeyCode.E))
                 {
                     string objRequired = objetoGO.GetComponent<Door>().getLockerRequires();
-                    if (objetoGO.GetComponent<Door>().getLocked() && !GameManager.GetComponent<GameManager>().isOnInventory(objRequired))
+                    if (objetoGO.GetComponent<Door>().getLocked() && !GameManager.isOnInventory(objRequired))
                     {
-                        GameManager.GetComponent<GameManager>().setDescText("Está cerrado. Necesito la " + objRequired + ".");
-                        GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                        GameManager.setDescText("Está cerrado. Necesito la " + objRequired + ".");
+                        GameManager.setIsDescAviableTextTrue();
                     }
                     else if (objetoGO.GetComponent<Door>().getLocked() && GameManager.GetComponent<GameManager>().isOnInventory(objRequired))
                     {
-                        GameManager.GetComponent<GameManager>().useItem(objRequired);
+                        //GameManager.GetComponent<GameManager>().useItem(objRequired);
                         objetoGO.GetComponent<Door>().Unlock();
-                        GameManager.GetComponent<GameManager>().setDescText("Puerta desbloqueada.");
-                        GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                        GameManager.setDescText("Puerta desbloqueada.");
+                        GameManager.setIsDescAviableTextTrue();
                     }
                     else
                     {
@@ -128,43 +132,99 @@ public class PlayerController : MonoBehaviour
 
                 if (!objetoGO.GetComponent<Door>().getOpen())
                 {
-                    GameManager.setActionsText("[E] Abrir");
+                    GameManager.setActionsText("[E]\nAbrir");
                     GameManager.setIsActionsAviableTextTrue();
                 }
                 else
                 {
-                    GameManager.setActionsText("[E] Cerrar");
+                    GameManager.setActionsText("[E]\nCerrar");
                     GameManager.setIsActionsAviableTextTrue();
                 }
             }
             else if (objetoGO.layer == LayerMask.NameToLayer("Locker"))
             {
-                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setActionsText("[E]\nInspeccionar");
                 GameManager.setIsActionsAviableTextTrue();
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    GameManager.GetComponent<GameManager>().setDescText("Aquí solo hay documentos sin valor.");
-                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    GameManager.setDescText("Aquí solo hay documentos sin valor.");
+                    GameManager.setIsDescAviableTextTrue();
                 }
             }
             else if (objetoGO.layer == LayerMask.NameToLayer("PC"))
             {
-                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setActionsText("[E]\nInspeccionar");
                 GameManager.setIsActionsAviableTextTrue();
-                if (objetoGO.name == "PC_Monitor (1)" && Input.GetKeyDown(KeyCode.E))
+                if (objetoGO.name == "PC_Monitor" && Input.GetKeyDown(KeyCode.E))
                 {
-                    GameManager.GetComponent<GameManager>().setDescText("No funciona.");
-                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    if (!GameManager.isWirePut())
+                    {
+                        if (GameManager.isOnInventory("Cable de alimentación"))
+                        {
+                            GameManager.setDescText("Cable enchufado.");
+                            GameManager.setIsDescAviableTextTrue();
+                            GameManager.useItem("Cable de alimentación");
+                            GameManager.putWire();
+                        }
+                        else
+                        {
+                            GameManager.setDescText("Le falta un cable de alimentación");
+                            GameManager.setIsDescAviableTextTrue();
+                        }
+                    } else
+                    {
+                        if (objetoGO.GetComponent<PC>().AllUnlocked())
+                        {
+                            GameManager.setDescText("Ya no me sirve para nada más.");
+                            GameManager.setIsDescAviableTextTrue();
+                        }
+                        else
+                        {
+                            if (GameManager.isOnInventory("Tarjeta azul"))
+                            {
+                                GameManager.useItem("Tarjeta azul");
+                                objetoGO.GetComponent<PC>().UnlockBox(1);
+                                GameManager.setDescText("\"Cajón 1 desbloqueado\"");
+                                GameManager.setIsDescAviableTextTrue();
+                            }
+                            else if (GameManager.isOnInventory("Tarjeta amarilla"))
+                            {
+                                GameManager.useItem("Tarjeta amarilla");
+                                objetoGO.GetComponent<PC>().UnlockBox(2);
+                                GameManager.setDescText("\"Cajón 2 desbloqueado\"");
+                                GameManager.setIsDescAviableTextTrue();
+                            }
+                            else if (GameManager.isOnInventory("Tarjeta roja"))
+                            {
+                                GameManager.useItem("Tarjeta roja");
+                                objetoGO.GetComponent<PC>().UnlockBox(3);
+                                GameManager.setDescText("\"Cajón 3 desbloqueado\"");
+                                GameManager.setIsDescAviableTextTrue();
+                            }
+                            else if (GameManager.isOnInventory("Tarjeta de seguridad"))
+                            {
+                                GameManager.useItem("Tarjeta de seguridad");
+                                objetoGO.GetComponent<PC>().UnlockBox(4);
+                                GameManager.setDescText("\"Cajón 4 desbloqueado\"");
+                                GameManager.setIsDescAviableTextTrue();
+                            }
+                            else
+                            {
+                                GameManager.setDescText("Está encendido, pero me hace falta una tarjeta de identificación.");
+                                GameManager.setIsDescAviableTextTrue();
+                            }
+                        }
+                    }
                 }
-                else if (objetoGO.name == "PC_Monitor" && Input.GetKeyDown(KeyCode.E))
+                else if (Input.GetKeyDown(KeyCode.E))
                 {
-                    GameManager.GetComponent<GameManager>().setDescText("Está encendido, pero me hace falta una contraseña.");
-                    GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    GameManager.setDescText("No funciona.");
+                    GameManager.setIsDescAviableTextTrue();
                 }
             }
             else if (objetoGO.layer == LayerMask.NameToLayer("Elevator"))
             {
-                GameManager.setActionsText("[E] Inspeccionar");
+                GameManager.setActionsText("[E]\nInspeccionar");
                 GameManager.setIsActionsAviableTextTrue();
                 if (Input.GetKeyDown(KeyCode.E))
                 {
@@ -172,14 +232,25 @@ public class PlayerController : MonoBehaviour
                     GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
                 }
             }
-            else if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Collectable"))
+            else if (objetoGO.layer == LayerMask.NameToLayer("Collectable"))
             {
-                GameManager.setActionsText("[E] Coger");
+                GameManager.setActionsText("[E]\nCoger");
                 GameManager.setIsActionsAviableTextTrue();
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    GameManager.GetComponent<GameManager>().ActivateTextByName(hit.collider.gameObject.GetComponent<Collectable>().GetName());
-                    hit.collider.GetComponent<Collectable>().GetItem();
+                    if ((objetoGO.GetComponent<Collectable>().GetName() == "Batería pequeña" || objetoGO.GetComponent<Collectable>().GetName() == "Batería grande")
+                        && !flashlightGet)
+                    {
+                        GameManager.GetComponent<GameManager>().setDescText("Necesito una linterna.");
+                        GameManager.GetComponent<GameManager>().setIsDescAviableTextTrue();
+                    }
+                    else
+                    {
+                        GameManager.setDescText(objetoGO.GetComponent<Collectable>().GetName());
+                        GameManager.setIsDescAviableTextTrue();
+                        GameManager.GetComponent<GameManager>().ActivateTextByName(objetoGO.GetComponent<Collectable>().GetName());
+                        objetoGO.GetComponent<Collectable>().GetItem();
+                    }
                 }
             }
             else
@@ -199,5 +270,20 @@ public class PlayerController : MonoBehaviour
     public void getFlashlight()
     {
         flashlightGet = true;
+    }
+
+    public bool isFlashlightGet()
+    {
+        return flashlightGet;
+    }
+
+    public float getFlashlightBatery()
+    {
+        return flashlightBatery;
+    }
+
+    public void addBatery(float amount)
+    {
+        flashlightBatery = Mathf.Min(100.99999f, flashlightBatery + amount);
     }
 }

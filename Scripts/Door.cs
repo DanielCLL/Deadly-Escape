@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Door : MonoBehaviour
 {
     public GameObject ParentDoor;
+    public EventSystemManager EventSystem;
     public float rotationSpeed = 90f;
     public float offsetRotationY = 0f;
     public float minY, maxY = 130f;
@@ -25,6 +27,12 @@ public class Door : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (lockerRequires == "Llave de la puerta principal" && !isLocked)
+        {
+            EventSystem = GameObject.Find("EventSystem").GetComponent<EventSystemManager>();
+            EventSystem.EndGame();
+        }
+            
         if (!isLocked)
         {
             float targetY;
