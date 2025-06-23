@@ -9,6 +9,7 @@ using System.Numerics;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
     // Variables de Opciones
     public Slider MusicaSL;
     public Slider SensibSL;
@@ -31,16 +32,38 @@ public class GameManager : MonoBehaviour
     private float loreTimer = 0f;
     //private string[] loreTextBuffer;
 
+    // Pausa
+    public GameObject pauseMenuUI;
+    public List<MonoBehaviour> scriptsToDisable; // scripts como CameraController, PlayerMovement, etc.
+
+    private bool isPaused = false;
+
     // Inventario
     public List<string> Inventario;
+    public GameObject inventoryUI;                 // Canvas del inventario
+    //public MonoBehaviour[] scriptsToDisable;       // Scripts como movimiento y cámara
+
+    private bool isInventoryOpen = false;
 
     // Jugador
     public GameObject PlayerGO;
+    private bool playerSpotted = false;
 
     // Entorno
     public GameObject CablePC;
     private bool cablePuesto = false;
 
+    // Audio
+    public AudioSource SpottAudio;
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else Destroy(gameObject);
+    }
     // Start is called before the first frame update
     void Start()
     {
@@ -53,6 +76,10 @@ public class GameManager : MonoBehaviour
     {
         if (SceneManager.GetActiveScene().name == "MainMenu")
         {
+            if (MusicaSL == null) MusicaSL = GameObject.Find("MusicaSL").GetComponent<Slider>();
+            if (SensibSL == null) SensibSL = GameObject.Find("SensibSL").GetComponent<Slider>();
+            if (musicaValue == null) musicaValue = GameObject.Find("MusicaValue").GetComponent<TextMeshProUGUI>();
+            if (sensibValue == null) sensibValue = GameObject.Find("SensibValue").GetComponent<TextMeshProUGUI>();
             porcMusica = MusicaSL.value;
             sensibilidad = SensibSL.value;
 
@@ -67,14 +94,25 @@ public class GameManager : MonoBehaviour
             if (FlashlightBatery == null)  FlashlightBatery = GameObject.Find("FlashlightBatery").GetComponent<TextMeshProUGUI>();
             if (PlayerGO == null) PlayerGO = GameObject.Find("Player");
             if (CablePC == null) CablePC = GameObject.Find("Cable_Black");
+            if (pauseMenuUI == null)
+            {
+                pauseMenuUI = GameObject.Find("PauseMenuUI");
+                pauseMenuUI.SetActive(false);
+            }
+            if (inventoryUI == null)
+            {
+                inventoryUI = GameObject.Find("InventoryUI");
+                inventoryUI.SetActive(false);
+            }
+            if (!scriptsToDisable.Contains(GameObject.Find("Player").GetComponent<PlayerController>())) scriptsToDisable.Add(GameObject.Find("Player").GetComponent<PlayerController>());
 
             ActionsText.gameObject.SetActive(isActionsTextAviable);
             DescText.gameObject.SetActive(isDescTextAviable);
             LoreText.gameObject.SetActive(isLoreTextAviable);
             CablePC.gameObject.SetActive(cablePuesto);
 
-            if (PlayerGO.GetComponent<PlayerController>().isFlashlightGet())
-                FlashlightBatery.text = "Batería: " + Mathf.Floor(PlayerGO.GetComponent<PlayerController>().getFlashlightBatery()).ToString() + " %";
+            if (PlayerGO.GetComponent<PlayerController>().HasFlashlight())
+                FlashlightBatery.text = "Batería: " + Mathf.Floor(PlayerGO.GetComponent<PlayerController>().GetFlashlightBattery()).ToString() + " %";
 
             if (descTimer > 0)
             {
@@ -95,7 +133,40 @@ public class GameManager : MonoBehaviour
             {
                 isLoreTextAviable = false;
             }
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (isPaused)
+                    Resume();
+                else
+                    Pause();
+            }
+
+            if (Input.GetKeyDown(KeyCode.I))
+            {
+                if (isInventoryOpen)
+                    CloseInventory();
+                else
+                    OpenInventory();
+            }
         }
+    }
+
+    public string GetActiveScene()
+    {
+        return SceneManager.GetActiveScene().name;
+    }
+
+    public bool GetPlayerSpotted()
+    {
+        return playerSpotted;
+    }
+
+    public void SpottPlayer()
+    {
+        if (!playerSpotted)
+            SpottAudio.Play();
+        playerSpotted = true;
     }
 
     /*****************************/
@@ -204,17 +275,17 @@ public class GameManager : MonoBehaviour
     {
         if (s == "Linterna")
         {
-            PlayerGO.GetComponent<PlayerController>().getFlashlight();
+            PlayerGO.GetComponent<PlayerController>().GetFlashlight();
             setDescText("Pulsa [F] para usar la linterna.");
             setIsDescAviableTextTrue();
         }
         else if (s == "Batería pequeña")
         {
-            PlayerGO.GetComponent<PlayerController>().addBatery(50f);
+            PlayerGO.GetComponent<PlayerController>().AddBattery(50f);
         }
         else if (s == "Batería grande")
         {
-            PlayerGO.GetComponent<PlayerController>().addBatery(100f);
+            PlayerGO.GetComponent<PlayerController>().AddBattery(100f);
         }
         else if (s == "Tarjeta de seguridad")
         {
@@ -235,5 +306,60 @@ public class GameManager : MonoBehaviour
     public bool isWirePut()
     {
         return cablePuesto;
+    }
+
+    public void Resume()
+    {
+        Debug.Log("Continua");
+        pauseMenuUI.SetActive(false);
+        Time.timeScale = 1f;
+        SetScriptsEnabled(true);
+        isPaused = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void Pause()
+    {
+        Debug.Log("Pausa");
+        pauseMenuUI.SetActive(true);
+        Time.timeScale = 0f;
+        SetScriptsEnabled(false);
+        isPaused = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    public void OpenInventory()
+    {
+        inventoryUI.SetActive(true);
+        Time.timeScale = 0f;
+        SetScriptsEnabled(false);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        isInventoryOpen = true;
+    }
+
+    public void CloseInventory()
+    {
+        inventoryUI.SetActive(false);
+        Time.timeScale = 1f;
+        SetScriptsEnabled(true);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        isInventoryOpen = false;
+    }
+
+    void SetScriptsEnabled(bool value)
+    {
+        foreach (MonoBehaviour script in scriptsToDisable)
+        {
+            script.enabled = value;
+        }
+    }
+
+    public void QuitGame()
+    {
+        SceneManager.LoadScene("MainMenu");
     }
 }

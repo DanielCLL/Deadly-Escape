@@ -1,89 +1,96 @@
+
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
+    [Header("Referencias")]
     public GameManager GameManager;
-
     public Camera playerCamera;
     public GameObject Flashlight, WhiteLight;
     public LayerMask interactables;
 
-    private Rigidbody _rb;
-    private float velocidad;
-    private float mouseSensitivity;
+    [Header("Audio")]
+    public AudioSource[] AudioManager;
+    public AudioSource[] FlashlightAudio;
+
+    [Header("Movimiento")]
+    public float walkSpeed = 2f;
+    public float runSpeed = 5f;
+    public float crouchSpeed = 0.5f;
+    public float jumpHeight = 0.2f;
+    public float gravity = -9.81f;
+    public float mouseSensitivity = 100f;
+
+    [Header("Linterna")]
+    public float flashlightBattery = 60f;
+
+    private CharacterController controller;
+    private Vector3 velocity;
     private float verticalRotation = 0f;
     private bool isCrouched = false;
     private bool flashlightGet = false;
     private bool flashlightActive = false;
-    private float flashlightBatery = 60;
 
-    // Start is called before the first frame update
+    private float originalCameraHeight;
+
     void Start()
     {
+        controller = GetComponent<CharacterController>();
         GameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
+        AudioManager = GameObject.Find("AudioManager").GetComponents<AudioSource>();
+        FlashlightAudio = Flashlight.GetComponents<AudioSource>();
 
-        mouseSensitivity = GameManager.GetComponent<GameManager>().GetSensibilidad();
-        velocidad = 1;
-        _rb = GetComponent<Rigidbody>();
-        Cursor.lockState = CursorLockMode.Locked; // Esconde el cursor y lo bloquea en el centro
+        mouseSensitivity = GameManager.GetSensibilidad();
+        originalCameraHeight = playerCamera.transform.localPosition.y;
+
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (Input.GetKey(KeyCode.W)) transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
-        if (Input.GetKey(KeyCode.S)) transform.Translate(Vector3.back * velocidad * 0.8f * Time.deltaTime);
-        if (Input.GetKey(KeyCode.A)) transform.Translate(Vector3.left * velocidad * 0.8f * Time.deltaTime);
-        if (Input.GetKey(KeyCode.D)) transform.Translate(Vector3.right * velocidad * 0.8f * Time.deltaTime);
+        HandleMovement();
+        HandleMouseLook();
+        HandleFlashlight();
+        HandleInteraction();
+    }
 
-        if (Input.GetKey(KeyCode.LeftShift) && !isCrouched) velocidad = 5;
-        else velocidad = 2;
+    void HandleMovement()
+    {
+        float speed = isCrouched ? crouchSpeed : (Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed);
 
-        if (Input.GetKey(KeyCode.LeftControl))
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical");
+        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+
+        controller.Move(move * speed * Time.deltaTime);
+
+        // Saltar
+        if (controller.isGrounded && velocity.y < 0)
+            velocity.y = -2f;
+
+        if (Input.GetKeyDown(KeyCode.Space) && controller.isGrounded)
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+
+        velocity.y += gravity * Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime);
+
+        // Agacharse
+        if (Input.GetKeyDown(KeyCode.LeftControl))
         {
-            playerCamera.transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
-            velocidad = 0.5f;
             isCrouched = true;
+            AdjustCameraHeight(-0.4f);
         }
         else if (Input.GetKeyUp(KeyCode.LeftControl))
         {
-            playerCamera.transform.position = new Vector3(transform.position.x, transform.position.y + 0.36f, transform.position.z);
-            velocidad = 1;
             isCrouched = false;
+            AdjustCameraHeight(0.4f);
         }
+    }
 
-        if (Input.GetKeyDown(KeyCode.F) && flashlightGet && flashlightBatery > 1)
-        {
-            flashlightActive = !flashlightActive;
-        }
-
-        if (flashlightActive && flashlightBatery > 1) flashlightBatery -= Time.deltaTime;
-        else if (flashlightBatery <= 1) flashlightActive = false;
-
-        Flashlight.SetActive(flashlightGet);
-        WhiteLight.SetActive(flashlightActive);
-        /*
-        if (flashlightGet) {
-            if (flashlightActive)
-            {
-                if (Flashlight.transform.position.y < cameraTransform.position.y - 0.345f)
-                {
-                    Flashlight.transform.Translate(Vector3.forward * 3 * Time.deltaTime);
-                }
-            }
-            else
-            {
-                if (Flashlight.transform.position.y > cameraTransform.position.y - 0.8f)
-                {
-                    Flashlight.transform.Translate(Vector3.back * 3 * Time.deltaTime);
-                }
-            }
-        }
-        */
-
-        // Rotación de cámara y personaje
+    void HandleMouseLook()
+    {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
@@ -92,7 +99,50 @@ public class PlayerController : MonoBehaviour
         verticalRotation -= mouseY;
         verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f);
         playerCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+    }
 
+    void AdjustCameraHeight(float offset)
+    {
+        Vector3 pos = playerCamera.transform.localPosition;
+        pos.y += offset;
+        playerCamera.transform.localPosition = pos;
+    }
+
+    void HandleFlashlight()
+    {
+        if (Input.GetKeyDown(KeyCode.F) && flashlightGet && flashlightBattery > 1f)
+        {
+            flashlightActive = !flashlightActive;
+            FlashlightAudio[0].volume = GameManager.GetMusicaValue() / 100f;
+            FlashlightAudio[0].Play();
+
+            if (flashlightActive)
+            {
+                FlashlightAudio[1].volume = GameManager.GetMusicaValue() / 100f;
+                FlashlightAudio[1].Play();
+            }
+            else
+            {
+                FlashlightAudio[1].Stop();
+            }
+        }
+
+        if (flashlightActive)
+        {
+            flashlightBattery -= Time.deltaTime;
+            if (flashlightBattery <= 1f)
+            {
+                flashlightActive = false;
+                FlashlightAudio[1].Stop();
+            }
+        }
+
+        Flashlight.SetActive(flashlightGet);
+        WhiteLight.SetActive(flashlightActive);
+    }
+
+    void HandleInteraction()
+    {
         // Raycast del Jugador
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
         RaycastHit hit;
@@ -123,10 +173,18 @@ public class PlayerController : MonoBehaviour
                         objetoGO.GetComponent<Door>().Unlock();
                         GameManager.setDescText("Puerta desbloqueada.");
                         GameManager.setIsDescAviableTextTrue();
+                        AudioManager[2].Play();
                     }
                     else
                     {
                         objetoGO.GetComponent<Door>().setOpen();
+                        if (objetoGO.name == "Door")
+                        {
+                            if (objetoGO.GetComponent<Door>().getOpen())
+                                AudioManager[1].Play();
+                            else
+                                AudioManager[3].Play();
+                        }
                     }
                 }
 
@@ -171,7 +229,8 @@ public class PlayerController : MonoBehaviour
                             GameManager.setDescText("Le falta un cable de alimentación");
                             GameManager.setIsDescAviableTextTrue();
                         }
-                    } else
+                    }
+                    else
                     {
                         if (objetoGO.GetComponent<PC>().AllUnlocked())
                         {
@@ -257,33 +316,16 @@ public class PlayerController : MonoBehaviour
             {
                 GameManager.setIsActionsAviableTextFalse();
             }
-        } else
+        }
+        else
         {
             GameManager.setIsActionsAviableTextFalse();
         }
     }
-    private void FixedUpdate()
-    {
-        if (Input.GetKeyDown(KeyCode.Space)) _rb.AddForce(Vector3.up * 2f, ForceMode.Impulse);
-    }
 
-    public void getFlashlight()
-    {
-        flashlightGet = true;
-    }
-
-    public bool isFlashlightGet()
-    {
-        return flashlightGet;
-    }
-
-    public float getFlashlightBatery()
-    {
-        return flashlightBatery;
-    }
-
-    public void addBatery(float amount)
-    {
-        flashlightBatery = Mathf.Min(100.99999f, flashlightBatery + amount);
-    }
+    // === Métodos públicos ===
+    public void GetFlashlight() => flashlightGet = true;
+    public bool HasFlashlight() => flashlightGet;
+    public float GetFlashlightBattery() => flashlightBattery;
+    public void AddBattery(float amount) => flashlightBattery = Mathf.Min(100f, flashlightBattery + amount);
 }

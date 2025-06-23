@@ -43,7 +43,6 @@ public class Door : MonoBehaviour
             }
             else
                 targetY = minY;
-
             // Obtener la rotación actual en euler angles
             Vector3 currentRotation = ParentDoor.transform.localRotation.eulerAngles;
 
